@@ -24,7 +24,7 @@ os.makedirs(CHAT_DIR, exist_ok=True)
 MEMORY_FILE = "memory_bank.json"
 
 st.set_page_config(page_title="My AI Stack", layout="wide")
-st.title("🚀 Claude + GLM Stack")
+st.title("🚀 Claude + GLM Stack (V2) ")
 
 # Initialize Uploaded File variable
 uploaded_file = None
