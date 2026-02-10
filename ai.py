@@ -50,7 +50,7 @@ else:
 
 st.sidebar.divider()
 
-# --- 3. ARCHIVAL SYSTEM (NEW) ---
+# --- 3. ARCHIVAL SYSTEM ---
 def manage_archive():
     """Keeps only 10 active chats. Archives the rest."""
     chat_files = sorted([f for f in os.listdir(CHAT_DIR) if f.endswith('.json')])
@@ -64,10 +64,14 @@ def manage_archive():
         with open(file_path, 'r') as f:
             chat_history = json.load(f)
         
-        # Summarize it (Silent/Free)
-        # We join the first user message and last AI message for context
-        prompt_text = f"Start: {chat_history[0]['content'][:200]}... End: {chat_history[-1]['content'][:200]}..."
+        # Safe summary logic (Prevents empty errors)
+        prompt_text = "Empty Chat"
+        if len(chat_history) > 0:
+            start = chat_history[0]['content'][:200]
+            end = chat_history[-1]['content'][:200]
+            prompt_text = f"Start: {start} ... End: {end}"
         
+        # Summarize it (Silent/Free)
         try:
             summary_response = zai_client.chat.completions.create(
                 model="glm-4.7-flash",
@@ -99,6 +103,7 @@ def manage_archive():
         os.remove(file_path)
 
 # --- 4. MEMORY ENGINE (SILENT) ---
+
 def get_memory():
     if os.path.exists(MEMORY_FILE):
         try:
@@ -110,54 +115,105 @@ def get_memory():
     return []
 
 def update_memory(user_input, ai_response):
+    """
+    Handles 3 modes silently (No UI).
+    1. EXPLICIT FORGET
+    2. EXPLICIT REMEMBER
+    3. AUTO LEARN (With Deduplication)
+    """
     existing_facts = get_memory()
     text_lower = f"{user_input} {ai_response}".lower()
+    
     updated_memory = existing_facts
 
+    # --- MODE 1: EXPLICIT FORGET ---
     if "forget" in text_lower or "delete" in text_lower or "erase" in text_lower:
-        prompt = f"The user wants to forget something. Return a JSON list of facts to KEEP. Existing Facts: {json.dumps(existing_facts)} User: {user_input}"
+        prompt = f"""
+        The user wants to forget something. Look at their input.
+        Return a JSON list of facts to KEEP (Remove the relevant ones).
+        Existing Facts: {json.dumps(existing_facts)}
+        User Input: {user_input}
+        """
         try:
-            response = zai_client.chat.completions.create(model="glm-4.7-flash", messages=[{"role": "user", "content": prompt}])
+            response = zai_client.chat.completions.create(
+                model="glm-4.7-flash",
+                messages=[{"role": "user", "content": prompt}]
+            )
             raw = response.choices[0].message.content
             clean = raw.strip()
             if "```json" in clean: clean = clean.split("```json")[1].split("```")[0]
             updated_memory = json.loads(clean)
-        except: pass
-        with open(MEMORY_FILE, 'w') as f: json.dump(updated_memory, f)
+        except:
+            pass
+        # Save silently
+        with open(MEMORY_FILE, 'w') as f:
+            json.dump(updated_memory, f)
         return
 
+    # --- MODE 2: EXPLICIT REMEMBER ---
     if "remember" in text_lower or "new name is" in text_lower or "my name is" in text_lower:
-        prompt = f"Extract the specific fact. Return a JSON list. User: {user_input}"
+        prompt = f"""
+        Extract the specific fact the user wants remembered.
+        User: {user_input}
+        Return ONLY a JSON list with the new fact.
+        """
         try:
-            response = zai_client.chat.completions.create(model="glm-4.7-flash", messages=[{"role": "user", "content": prompt}])
+            response = zai_client.chat.completions.create(
+                model="glm-4.7-flash",
+                messages=[{"role": "user", "content": prompt}]
+            )
             raw = response.choices[0].message.content
             clean = raw.strip()
             if "```json" in clean: clean = clean.split("```json")[1].split("```")[0]
             new_facts = json.loads(clean)
             if not isinstance(new_facts, list): new_facts = []
+            
             for fact in new_facts:
                 if fact not in updated_memory:
                     updated_memory.append(fact)
-        except: pass
-        with open(MEMORY_FILE, 'w') as f: json.dump(updated_memory, f)
+        except:
+            pass
+        # Save silently
+        with open(MEMORY_FILE, 'w') as f:
+            json.dump(updated_memory, f)
         return
 
-    prompt = f"Extract NEW facts. Existing Knowledge (DO NOT REPEAT): {json.dumps(existing_facts)} Text: {user_input} AI: {ai_response}"
+    # --- MODE 3: AUTO LEARN (Background) ---
+    prompt = f"""
+    Extract NEW facts about the user from this text.
+    Return ONLY a JSON list.
+    Existing Knowledge (DO NOT REPEAT): {json.dumps(existing_facts)}
+    
+    Text: {user_input}
+    AI Response: {ai_response}
+    """
     try:
-        response = zai_client.chat.completions.create(model="glm-4.7-flash", messages=[{"role": "user", "content": prompt}])
+        response = zai_client.chat.completions.create(
+            model="glm-4.7-flash",
+            messages=[{"role": "user", "content": prompt}]
+        )
         raw_text = response.choices[0].message.content
         clean_json = raw_text.strip()
-        if "```json" in clean_json: clean_json = clean_json.split("```json")[1].split("```")[0]
-        elif "```" in clean_json: clean_json = clean_json.split("```")[1].split("```")[0]
+        if "```json" in clean_json:
+            clean_json = clean_json.split("```json")[1].split("```")[0]
+        elif "```" in clean_json:
+            clean_json = clean_json.split("```")[1].split("```")[0]
+        
         try:
             new_facts = json.loads(clean_json)
             if not isinstance(new_facts, list): new_facts = []
-        except: new_facts = []
+        except:
+            new_facts = []
+            
         for fact in new_facts:
             if fact not in updated_memory:
                 updated_memory.append(fact)
-        with open(MEMORY_FILE, 'w') as f: json.dump(updated_memory, f)
-    except Exception as e: pass
+        
+        with open(MEMORY_FILE, 'w') as f:
+            json.dump(updated_memory, f)
+            
+    except Exception as e:
+        pass
 
 # --- 5. SIDEBAR: HISTORY & ARCHIVE ---
 st.sidebar.title("💾 Chat History")
@@ -165,12 +221,6 @@ st.sidebar.caption("Archives old chats after 10.")
 
 chat_files = [f for f in os.listdir(CHAT_DIR) if f.endswith('.json')]
 chat_files.sort(reverse=True)
-
-# Load Archive
-archive_data = []
-if os.path.exists(ARCHIVE_FILE):
-    with open(ARCHIVE_FILE, 'r') as f:
-        archive_data = json.load(f)
 
 if st.sidebar.button("➕ New Chat"):
     st.session_state['current_chat_id'] = None
@@ -187,6 +237,12 @@ if st.sidebar.button("🗑️ Delete Current Chat"):
         st.session_state['current_chat_id'] = None
         st.session_state.messages = []
         st.rerun()
+
+# Load Archive
+archive_data = []
+if os.path.exists(ARCHIVE_FILE):
+    with open(ARCHIVE_FILE, 'r') as f:
+        archive_data = json.load(f)
 
 # View Archive
 with st.sidebar.expander("📜 Archived Wisdom"):
@@ -241,19 +297,38 @@ if prompt := st.chat_input("Ask a question..."):
         full_response = ""
 
         api_messages = trim_history(st.session_state.messages)
-        memories = get_memory()
+        memories = get_memory() # Get memory silently for context
         
+        # --- VISION MODE LOGIC ---
         if has_image:
             base64_image = base64.b64encode(uploaded_file.read()).decode('utf-8')
+            
             vision_message = [
-                {"type": "image", "source": {"type": "base64", "media_type": uploaded_file.type, "data": base64_image}},
-                {"type": "text", "text": f"Context about user: {json.dumps(memories)}. \n\nUser Question: {prompt}"}
+                {
+                    "type": "image", 
+                    "source": {
+                        "type": "base64", 
+                        "media_type": uploaded_file.type, 
+                        "data": base64_image
+                    }
+                },
+                {
+                    "type": "text", 
+                    "text": f"Context about user: {json.dumps(memories)}. \n\nUser Question: {prompt}"
+                }
             ]
+            
             try:
-                response = completion(model="anthropic/claude-3-5-sonnet-20240620", messages=api_messages + [vision_message], api_key=ANTHROPIC_KEY)
+                response = completion(
+                    model="anthropic/claude-3-5-sonnet-20240620",
+                    messages=api_messages + [vision_message],
+                    api_key=ANTHROPIC_KEY
+                )
                 full_response = response.choices[0]['message']['content']
-            except Exception as e: full_response = f"Claude Error: {e}"
+            except Exception as e:
+                full_response = f"Claude Error: {e}"
 
+        # --- TEXT MODE LOGIC ---
         else:
             memory_string = ". ".join(memories)
             system_prompt = f"Here is what you know about user: {memory_string}\n\nConversation:"
@@ -261,27 +336,36 @@ if prompt := st.chat_input("Ask a question..."):
 
             if "GLM" in model_choice:
                 try:
-                    response = zai_client.chat.completions.create(model="glm-4.7-flash", messages=api_messages)
+                    response = zai_client.chat.completions.create(
+                        model="glm-4.7-flash",
+                        messages=api_messages
+                    )
                     full_response = response.choices[0].message.content
-                except Exception as e: full_response = f"GLM Error: {e}"
+                except Exception as e:
+                    full_response = f"GLM Error: {e}"
 
             elif "Claude" in model_choice:
                 if not ANTHROPIC_KEY:
                     full_response = "⚠️ No Claude Key found."
                 else:
                     try:
-                        response = completion(model="anthropic/claude-3-5-sonnet-20240620", messages=api_messages, api_key=ANTHROPIC_KEY)
+                        response = completion(
+                            model="anthropic/claude-3-5-sonnet-20240620",
+                            messages=api_messages,
+                            api_key=ANTHROPIC_KEY
+                        )
                         full_response = response.choices[0]['message']['content']
-                    except Exception as e: full_response = f"Claude Error: {e}"
+                    except Exception as e:
+                        full_response = f"Claude Error: {e}"
 
         message_placeholder.markdown(full_response)
 
     st.session_state.messages.append({"role": "assistant", "content": full_response})
 
-    # MEMORY UPDATE
+    # --- SILENT MEMORY UPDATE ---
     update_memory(prompt, full_response)
 
-    # RUN ARCHIVAL
+    # --- RUN ARCHIVAL ---
     manage_archive()
 
     # SAVE CHAT
