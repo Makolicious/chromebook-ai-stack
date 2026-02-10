@@ -1,0 +1,5 @@
+venv/
+.env
+chats/
+*.pyc
+__pycache__/
