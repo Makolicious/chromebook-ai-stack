@@ -1,5 +1,8 @@
 venv/
 .env
 chats/
+memory_bank.json
+chat_archive.json
 *.pyc
 __pycache__/
+EOF
