@@ -15,6 +15,7 @@ load_dotenv()
 
 ZAI_KEY = os.environ.get("ZHIPUAI_API_KEY")
 ANTHROPIC_KEY = os.environ.get("ANTHROPIC_API_KEY")
+EXECUTE_API_URL = os.environ.get("EXECUTE_API_URL", "http://localhost:5000")
 
 zai_client = OpenAI(
     api_key=ZAI_KEY,
@@ -79,7 +80,7 @@ if st.session_state['tab'] == 'Chat':
         """Execute code through the Node.js backend"""
         try:
             response = requests.post(
-                "http://localhost:5000/api/execute/run",
+                f"{EXECUTE_API_URL}/api/execute/run",
                 json={"code": code, "language": language, "timeout": timeout},
                 timeout=timeout // 1000 + 2
             )
@@ -479,7 +480,7 @@ elif st.session_state['tab'] == 'CodeExecution':
     st.caption("Execute code snippets safely using the backend execution server.")
 
     # Configuration
-    SERVER_URL = st.sidebar.text_input("Server URL", value="http://localhost:5000")
+    SERVER_URL = st.sidebar.text_input("Server URL", value=EXECUTE_API_URL)
 
     # Language selection
     language = st.selectbox("Select Language", ["python", "javascript"])
