@@ -29,7 +29,32 @@ MEMORY_FILE = "memory_bank.json"
 ARCHIVE_FILE = "chat_archive.json"
 
 st.set_page_config(page_title="MAiKO", layout="wide")
-st.title("🚀 MAiKO")
+
+# Custom styled logo with green gradient and shadow
+st.markdown("""
+    <style>
+        .maiko-logo {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px;
+        }
+        .maiko-title {
+            font-size: 56px;
+            font-weight: bold;
+            color: #2ecc71;
+            text-shadow:
+                2px 2px 4px rgba(46, 204, 113, 0.3),
+                4px 4px 8px rgba(39, 174, 96, 0.2),
+                0px 0px 20px rgba(46, 204, 113, 0.15);
+            letter-spacing: 3px;
+            font-family: 'Arial', sans-serif;
+            font-style: italic;
+        }
+    </style>
+    <div class="maiko-logo">
+        <div class="maiko-title">🚀 MAiKO</div>
+    </div>
+""", unsafe_allow_html=True)
 
 # --- 2. STATE INIT ---
 if 'tab' not in st.session_state:
