@@ -479,6 +479,10 @@ elif st.session_state['tab'] == 'CodeExecution':
     st.header("⚙️ Code Execution Engine")
     st.caption("Execute code snippets safely using the backend execution server.")
 
+    # Initialize execution history in session state
+    if 'execution_history' not in st.session_state:
+        st.session_state['execution_history'] = []
+
     # Configuration
     SERVER_URL = st.sidebar.text_input("Server URL", value=EXECUTE_API_URL)
 
@@ -489,6 +493,7 @@ elif st.session_state['tab'] == 'CodeExecution':
     code_input = st.text_area(
         "Enter your code:",
         height=300,
+        key="code_input",
         placeholder=f"# Write your {language} code here\nprint('Hello, World!')"
     )
 
@@ -499,10 +504,15 @@ elif st.session_state['tab'] == 'CodeExecution':
         execute_btn = st.button("▶️ Execute Code", key="execute_btn")
 
     with col2:
-        st.button("🗑️ Clear", key="clear_btn")
+        clear_btn = st.button("🗑️ Clear", key="clear_btn")
 
     with col3:
         show_help = st.button("❓ Help", key="help_btn")
+
+    # Clear button functionality
+    if clear_btn:
+        st.session_state['code_input'] = ""
+        st.rerun()
 
     # Help section
     if show_help:
@@ -513,32 +523,64 @@ elif st.session_state['tab'] == 'CodeExecution':
         - **Output**: View execution results in real-time
         - **Errors**: Error messages are displayed if execution fails
         - **Timeout**: Code that takes >5 seconds will timeout
+        - **History**: All executions are logged below
         """)
 
     # Execute code
     if execute_btn and code_input:
-        st.subheader("Execution Results")
+        st.subheader("⏳ Executing...")
 
         try:
+            import time
+            start_time = time.time()
             with st.spinner(f"Executing {language} code..."):
                 response = requests.post(
                     f"{SERVER_URL}/api/execute/run",
                     json={"code": code_input, "language": language},
                     timeout=10
                 )
+            execution_time = time.time() - start_time
 
             if response.status_code == 200:
                 result = response.json()
 
+                # Add to history
+                execution_record = {
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "language": language,
+                    "success": result.get('success'),
+                    "output": result.get('output'),
+                    "error": result.get('error'),
+                    "execution_id": result.get('executionId'),
+                    "duration": f"{execution_time:.2f}s"
+                }
+                st.session_state['execution_history'].insert(0, execution_record)
+
                 if result.get('success'):
                     st.success("✅ Execution Successful")
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Status", "Success ✅")
+                    with col2:
+                        st.metric("Duration", f"{execution_time:.2f}s")
+                    with col3:
+                        st.metric("Language", language.upper())
+
                     if result.get('output'):
-                        st.subheader("Output:")
+                        st.subheader("📤 Output:")
                         st.code(result['output'], language="text")
                 else:
                     st.error("❌ Execution Failed")
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Status", "Failed ❌")
+                    with col2:
+                        st.metric("Duration", f"{execution_time:.2f}s")
+                    with col3:
+                        st.metric("Language", language.upper())
+
                     if result.get('error'):
-                        st.subheader("Error:")
+                        st.subheader("⚠️ Error:")
                         st.code(result['error'], language="text")
             else:
                 st.error(f"Server Error: {response.status_code}")
@@ -551,3 +593,28 @@ elif st.session_state['tab'] == 'CodeExecution':
             st.error("❌ Code execution timed out (>10 seconds)")
         except Exception as e:
             st.error(f"❌ Error: {str(e)}")
+
+    # Execution history section
+    if st.session_state['execution_history']:
+        st.divider()
+        st.subheader("📋 Execution History")
+
+        # Display history in expandable sections
+        for i, record in enumerate(st.session_state['execution_history']):
+            status_icon = "✅" if record['success'] else "❌"
+            with st.expander(f"{status_icon} [{record['timestamp']}] {record['language'].upper()} - {record['duration']}"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.write(f"**Status:** {'Success' if record['success'] else 'Failed'}")
+                    st.write(f"**Duration:** {record['duration']}")
+                    st.write(f"**Language:** {record['language'].upper()}")
+                with col2:
+                    st.write(f"**Execution ID:** `{record['execution_id']}`")
+                    st.write(f"**Timestamp:** {record['timestamp']}")
+
+                if record['success'] and record['output']:
+                    st.write("**Output:**")
+                    st.code(record['output'], language="text")
+                elif record['error']:
+                    st.write("**Error:**")
+                    st.code(record['error'], language="text")
