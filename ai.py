@@ -283,52 +283,100 @@ if st.session_state['tab'] == 'Chat':
             
         except Exception as e: pass
 
-    # 4c. SIDEBAR UI
+    # 4c. SIDEBAR UI - CHAT HISTORY BROWSER
     st.sidebar.title("💾 Chat History")
-    st.sidebar.caption("Archives old chats after 10.")
-    chat_files = [f for f in os.listdir(CHAT_DIR) if f.endswith('.json')]
-    chat_files.sort(reverse=True)
-    
-    if st.sidebar.button("➕ New Chat"):
+
+    # Initialize chat state
+    if 'current_chat_id' not in st.session_state:
+        st.session_state['current_chat_id'] = None
+        st.session_state.messages = []
+
+    # New Chat button
+    if st.sidebar.button("➕ New Chat", use_container_width=True):
         st.session_state['current_chat_id'] = None
         st.session_state.messages = []
         st.rerun()
-    
-    selected_chat = st.sidebar.selectbox("Previous Chats", options=["Select a chat..."] + chat_files)
-    
-    if st.sidebar.button("🗑️ Delete Current Chat"):
+
+    st.sidebar.divider()
+
+    # Get all chat files
+    chat_files = [f for f in os.listdir(CHAT_DIR) if f.endswith('.json')]
+    chat_files.sort(reverse=True)
+
+    if chat_files:
+        st.sidebar.subheader("📖 Recent Chats")
+
+        for chat_file in chat_files[:10]:  # Show last 10 chats
+            file_path = os.path.join(CHAT_DIR, chat_file)
+            try:
+                with open(file_path, 'r') as f:
+                    chat_data = json.load(f)
+
+                # Get chat preview (first user message)
+                preview = "Empty chat"
+                if chat_data and len(chat_data) > 0:
+                    for msg in chat_data:
+                        if msg.get('role') == 'user':
+                            preview = msg.get('content', 'Empty chat')[:50]
+                            break
+                    if preview == "Empty chat" and chat_data[0]:
+                        preview = chat_data[0].get('content', 'Empty chat')[:50]
+
+                # Clean up filename for display (remove .json)
+                chat_name = chat_file.replace('.json', '')
+
+                # Current chat indicator
+                is_current = st.session_state['current_chat_id'] == chat_file
+                marker = "👉 " if is_current else "   "
+
+                # Click button to load chat
+                if st.sidebar.button(
+                    f"{marker}{chat_name}\n💬 {preview}...",
+                    key=f"chat_{chat_file}",
+                    use_container_width=True,
+                    help=f"Resume chat: {chat_name}"
+                ):
+                    with open(file_path, 'r') as f:
+                        st.session_state.messages = json.load(f)
+                    st.session_state['current_chat_id'] = chat_file
+                    st.rerun()
+
+            except Exception as e:
+                st.sidebar.caption(f"⚠️ Error loading {chat_file}")
+    else:
+        st.sidebar.caption("📭 No chats yet. Start a new one!")
+
+    st.sidebar.divider()
+
+    # Delete current chat
+    if st.sidebar.button("🗑️ Delete Current Chat", use_container_width=True):
         if st.session_state['current_chat_id']:
             file_to_delete = os.path.join(CHAT_DIR, st.session_state['current_chat_id'])
             if os.path.exists(file_to_delete):
                 os.remove(file_to_delete)
+                st.success("Chat deleted!")
             st.session_state['current_chat_id'] = None
             st.session_state.messages = []
             st.rerun()
 
+    st.sidebar.divider()
+
+    # Archive section
     archive_data = []
     if os.path.exists(ARCHIVE_FILE):
-        with open(ARCHIVE_FILE, 'r') as f:
-            archive_data = json.load(f)
-    
-    with st.sidebar.expander("📜 Archived Wisdom"):
+        try:
+            with open(ARCHIVE_FILE, 'r') as f:
+                archive_data = json.load(f)
+        except:
+            archive_data = []
+
+    with st.sidebar.expander("📜 Archived Chats"):
         if not archive_data:
-            st.sidebar.caption("No archives yet.")
+            st.caption("No archives yet.")
         else:
             for item in archive_data[:5]:
-                st.sidebar.markdown(f"**{item['date']}**")
-                st.sidebar.caption(f"🔹 {item['summary']}")
-
-    if 'current_chat_id' not in st.session_state:
-        st.session_state['current_chat_id'] = None
-        st.session_state.messages = []
-    
-    if selected_chat and selected_chat != "Select a chat...":
-        if selected_chat != st.session_state.get('current_chat_id'):
-            file_path = os.path.join(CHAT_DIR, selected_chat)
-            with open(file_path, 'r') as f:
-                st.session_state.messages = json.load(f)
-            st.session_state['current_chat_id'] = selected_chat
-            st.rerun()
+                st.markdown(f"**{item['date']}**")
+                st.caption(f"🔹 {item['summary']}")
 
     def trim_history(messages, limit=20):
         return messages[-limit:]
