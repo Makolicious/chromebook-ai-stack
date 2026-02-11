@@ -1,10 +1,25 @@
 const express = require('express');
+const cors = require('cors');
+require('dotenv').config();
 const executeRouter = require('./routes/execute');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// CORS configuration
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000').split(',');
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+};
+
 // Middleware
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Routes
