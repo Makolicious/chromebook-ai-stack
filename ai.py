@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from litellm import completion
 import streamlit as st
+from anthropic import Anthropic
 
 # --- 1. SETUP ---
 load_dotenv()
@@ -72,8 +73,104 @@ st.sidebar.divider()
 
 # --- 4. CHAT TAB LOGIC ---
 if st.session_state['tab'] == 'Chat':
-    
-    # 4a. ARCHIVAL SYSTEM
+
+    # 4a. CODE EXECUTION (Agentic)
+    def execute_code_remote(code: str, language: str = "javascript", timeout: int = 5000):
+        """Execute code through the Node.js backend"""
+        try:
+            response = requests.post(
+                "http://localhost:5000/api/execute/run",
+                json={"code": code, "language": language, "timeout": timeout},
+                timeout=timeout // 1000 + 2
+            )
+            if response.status_code == 200:
+                return response.json()
+            else:
+                return {"success": False, "error": f"Server error: {response.status_code}", "output": None}
+        except requests.exceptions.ConnectionError:
+            return {"success": False, "error": "Cannot connect to execution server", "output": None}
+        except Exception as e:
+            return {"success": False, "error": str(e), "output": None}
+
+    def chat_with_code_execution(messages, model_choice):
+        """Claude chat with agentic code execution capability"""
+        if "Claude" not in model_choice or not ANTHROPIC_KEY:
+            return None
+
+        client = Anthropic(api_key=ANTHROPIC_KEY)
+
+        # Define code execution tool
+        tools = [
+            {
+                "name": "execute_code",
+                "description": "Execute Python or JavaScript code to solve problems, analyze data, or test hypotheses",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "code": {
+                            "type": "string",
+                            "description": "The code to execute"
+                        },
+                        "language": {
+                            "type": "string",
+                            "enum": ["python", "javascript"],
+                            "description": "Programming language: python or javascript"
+                        }
+                    },
+                    "required": ["code", "language"]
+                }
+            }
+        ]
+
+        # Convert messages format for Anthropic
+        api_messages = [
+            {"role": msg["role"], "content": msg["content"]}
+            for msg in messages
+        ]
+
+        # Initial Claude response
+        response = client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=4096,
+            tools=tools,
+            messages=api_messages
+        )
+
+        # Handle tool use in an agentic loop
+        while response.stop_reason == "tool_use":
+            tool_use_block = next(b for b in response.content if b.type == "tool_use")
+            tool_name = tool_use_block.name
+            tool_input = tool_use_block.input
+
+            if tool_name == "execute_code":
+                result = execute_code_remote(tool_input["code"], tool_input.get("language", "javascript"))
+
+                # Add assistant response and tool result to messages
+                api_messages.append({"role": "assistant", "content": response.content})
+                api_messages.append({
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": tool_use_block.id,
+                            "content": json.dumps(result)
+                        }
+                    ]
+                })
+
+                # Get next response
+                response = client.messages.create(
+                    model="claude-3-5-sonnet-20241022",
+                    max_tokens=4096,
+                    tools=tools,
+                    messages=api_messages
+                )
+
+        # Extract final text response
+        text_blocks = [b for b in response.content if hasattr(b, 'text')]
+        return "".join(b.text for b in text_blocks) if text_blocks else ""
+
+    # 4b. ARCHIVAL SYSTEM
     def manage_archive():
         chat_files = sorted([f for f in os.listdir(CHAT_DIR) if f.endswith('.json')])
         if len(chat_files) > 10:
@@ -282,12 +379,10 @@ if st.session_state['tab'] == 'Chat':
                     }
                 ]
                 try:
-                    response = completion(
-                        model="anthropic/claude-3-5-sonnet-20240620", 
-                        messages=api_messages + [vision_message],
-                        api_key=ANTHROPIC_KEY
-                    )
-                    full_response = response.choices[0]['message']['content']
+                    # Use agentic code execution with vision
+                    full_response = chat_with_code_execution(api_messages + [vision_message], model_choice)
+                    if not full_response:
+                        full_response = "Claude Error: No response generated"
                 except Exception as e:
                     full_response = f"Claude Error: {e}"
 
@@ -311,12 +406,10 @@ if st.session_state['tab'] == 'Chat':
                         full_response = "⚠️ No Claude Key found."
                     else:
                         try:
-                            response = completion(
-                                model="anthropic/claude-3-5-sonnet-20240620",
-                                messages=api_messages,
-                                api_key=ANTHROPIC_KEY
-                            )
-                            full_response = response.choices[0]['message']['content']
+                            # Use agentic code execution
+                            full_response = chat_with_code_execution(api_messages, model_choice)
+                            if not full_response:
+                                full_response = "Claude Error: No response generated"
                         except Exception as e:
                             full_response = f"Claude Error: {e}"
 
