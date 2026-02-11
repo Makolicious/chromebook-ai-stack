@@ -82,7 +82,7 @@ To auto-deploy when you push to the branch:
 
 ## Testing in Your App
 
-Once deployed, your Maiko app will:
+Once deployed, your MAiKO app will:
 1. ✅ Show the "Code Execution" manual tab (for user code entry)
 2. ✅ Allow Claude to autonomously execute code (agentic behavior)
 3. ✅ Send code to the Railway backend for execution

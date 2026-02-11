@@ -1,6 +1,6 @@
 # Code Execution Server - Deployment Guide
 
-This Node.js backend handles code execution for the Maiko AI application. It can be deployed to various platforms.
+This Node.js backend handles code execution for the MAiKO AI application. It can be deployed to various platforms.
 
 ## Deployment to Railway (Recommended)
 
