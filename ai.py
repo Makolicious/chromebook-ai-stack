@@ -2,6 +2,7 @@ import os
 import json
 import base64
 import subprocess
+import requests
 from datetime import datetime
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -62,6 +63,9 @@ if st.sidebar.button("💻 Terminal"):
     st.rerun()
 if st.sidebar.button("📝 Code Editor"):
     st.session_state['tab'] = 'Code'
+    st.rerun()
+if st.sidebar.button("⚙️ Code Execution"):
+    st.session_state['tab'] = 'CodeExecution'
     st.rerun()
 
 st.sidebar.divider()
@@ -375,3 +379,81 @@ elif st.session_state['tab'] == 'Code':
             with open(file_path, 'w') as f:
                 f.write(new_content)
             st.success(f"Saved {filename}!")
+
+# --- 7. CODE EXECUTION TAB ---
+elif st.session_state['tab'] == 'CodeExecution':
+    st.header("⚙️ Code Execution Engine")
+    st.caption("Execute code snippets safely using the backend execution server.")
+
+    # Configuration
+    SERVER_URL = st.sidebar.text_input("Server URL", value="http://localhost:5000")
+
+    # Language selection
+    language = st.selectbox("Select Language", ["python", "javascript"])
+
+    # Code editor
+    code_input = st.text_area(
+        "Enter your code:",
+        height=300,
+        placeholder=f"# Write your {language} code here\nprint('Hello, World!')"
+    )
+
+    # Execution controls
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        execute_btn = st.button("▶️ Execute Code", key="execute_btn")
+
+    with col2:
+        st.button("🗑️ Clear", key="clear_btn")
+
+    with col3:
+        show_help = st.button("❓ Help", key="help_btn")
+
+    # Help section
+    if show_help:
+        st.info("""
+        **Code Execution Engine Help:**
+        - **Python**: Execute Python code snippets (import libraries as needed)
+        - **JavaScript**: Execute Node.js code snippets
+        - **Output**: View execution results in real-time
+        - **Errors**: Error messages are displayed if execution fails
+        - **Timeout**: Code that takes >5 seconds will timeout
+        """)
+
+    # Execute code
+    if execute_btn and code_input:
+        st.subheader("Execution Results")
+
+        try:
+            with st.spinner(f"Executing {language} code..."):
+                response = requests.post(
+                    f"{SERVER_URL}/api/execute/run",
+                    json={"code": code_input, "language": language},
+                    timeout=10
+                )
+
+            if response.status_code == 200:
+                result = response.json()
+
+                if result.get('success'):
+                    st.success("✅ Execution Successful")
+                    if result.get('output'):
+                        st.subheader("Output:")
+                        st.code(result['output'], language="text")
+                else:
+                    st.error("❌ Execution Failed")
+                    if result.get('error'):
+                        st.subheader("Error:")
+                        st.code(result['error'], language="text")
+            else:
+                st.error(f"Server Error: {response.status_code}")
+                st.code(response.text, language="text")
+
+        except requests.exceptions.ConnectionError:
+            st.error("❌ Cannot connect to execution server. Make sure it's running on " + SERVER_URL)
+            st.info("Start the server with: `cd server && npm install && npm start`")
+        except requests.exceptions.Timeout:
+            st.error("❌ Code execution timed out (>10 seconds)")
+        except Exception as e:
+            st.error(f"❌ Error: {str(e)}")
