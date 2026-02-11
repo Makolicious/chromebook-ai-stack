@@ -28,8 +28,8 @@ export default function ModelSelector({ currentModel, onModelChange }: ModelSele
               : 'bg-[#2a2a2a] text-gray-300 hover:bg-[#3a3a3a]'
           }`}
         >
-          <div className="font-medium text-sm">🤖 Claude 3.5 Sonnet</div>
-          <div className="text-xs opacity-75 mt-1">Smart & Powerful</div>
+          <div className="font-medium text-sm">🤖 Claude 3 Haiku</div>
+          <div className="text-xs opacity-75 mt-1">Smart & Balanced</div>
         </button>
 
         <button

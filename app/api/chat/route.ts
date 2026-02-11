@@ -1,19 +1,17 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
+import { loadMemory, injectMemoryContext } from '@/lib/memory';
 
 export async function POST(req: NextRequest) {
   try {
     const { messages, model } = await req.json();
 
-    // Debug: Check env vars at runtime
-    console.log('ENV CHECK:', {
-      anthropicExists: !!process.env.ANTHROPIC_API_KEY,
-      anthropicLength: process.env.ANTHROPIC_API_KEY?.length,
-      anthropicStart: process.env.ANTHROPIC_API_KEY?.substring(0, 10),
-      zhipuExists: !!process.env.ZHIPUAI_API_KEY,
-      allKeys: Object.keys(process.env).filter(k => k.includes('API')),
-    });
+    // Load persistent memory context
+    const memory = loadMemory();
+
+    // Inject memory into messages (only if this is a new conversation)
+    const messagesWithMemory = injectMemoryContext(messages, memory);
 
     // Initialize clients inside the function to ensure env vars are loaded
     const anthropic = new Anthropic({
@@ -26,22 +24,22 @@ export async function POST(req: NextRequest) {
     });
 
     if (model === 'claude') {
-      // Use Claude 3.5 Sonnet
+      // Use Claude 3 Haiku with memory context
       const response = await anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-3-haiku-20240307',
         max_tokens: 4096,
-        messages: messages,
+        messages: messagesWithMemory,
       });
 
       return NextResponse.json({
         content: response.content[0].type === 'text' ? response.content[0].text : '',
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-3-haiku-20240307',
       });
     } else if (model === 'glm') {
-      // Use GLM-4.7
+      // Use GLM-4.7 with memory context
       const response = await zhipuClient.chat.completions.create({
         model: 'glm-4.7-flash',
-        messages: messages,
+        messages: messagesWithMemory,
       });
 
       return NextResponse.json({
@@ -51,11 +49,11 @@ export async function POST(req: NextRequest) {
     } else if (model === 'mako') {
       // Hybrid Mode: GLM for planning (80%), Claude for execution (20%)
 
-      // Step 1: GLM does the heavy lifting - planning, thinking, drafting
+      // Step 1: GLM does the heavy lifting - planning, thinking, drafting (with memory)
       const glmResponse = await zhipuClient.chat.completions.create({
         model: 'glm-4.7-flash',
         messages: [
-          ...messages,
+          ...messagesWithMemory,
           {
             role: 'system',
             content: 'You are in brainstorming mode. Focus on exploring ideas, planning, and thinking through the problem. Provide a detailed draft response.'
@@ -67,7 +65,7 @@ export async function POST(req: NextRequest) {
 
       // Step 2: Claude reviews, refines, and perfects the response
       const claudeResponse = await anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-3-haiku-20240307',
         max_tokens: 4096,
         messages: [
           {

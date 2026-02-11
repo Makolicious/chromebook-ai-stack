@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "ai.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "ai.py"
+    }
+  ],
+  "env": {
+    "ZHIPUAI_API_KEY": "@zhipuai_api_key",
+    "ANTHROPIC_API_KEY": "@anthropic_api_key"
+  }
+}
