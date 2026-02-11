@@ -1,7 +1,7 @@
-# Project Context - AI Stack Desktop
+# Project Context - Maiko
 
 ## Overview
-A Next.js application that combines multiple LLM models into a unified chat interface.
+Maiko is a Next.js hybrid intelligence system that combines multiple LLM models into a unified chat interface.
 
 ## Architecture
 - **Frontend**: Next.js 15, TypeScript, Tailwind CSS

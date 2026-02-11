@@ -12,7 +12,7 @@
 - Include error handling
 
 ## What to Remember
-- I'm building AI Stack Desktop with dual-LLM functionality
+- I'm building Maiko with dual-LLM functionality
 - I prefer practical solutions over theoretical explanations
 - I value efficiency and clean code
 
