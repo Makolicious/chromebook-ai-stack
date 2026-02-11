@@ -28,8 +28,8 @@ os.makedirs(CHAT_DIR, exist_ok=True)
 MEMORY_FILE = "memory_bank.json"
 ARCHIVE_FILE = "chat_archive.json"
 
-st.set_page_config(page_title="My AI Stack", layout="wide")
-st.title("🚀 Claude + GLM Stack")
+st.set_page_config(page_title="MAiKO", layout="wide")
+st.title("🚀 MAiKO")
 
 # --- 2. STATE INIT ---
 if 'tab' not in st.session_state:
