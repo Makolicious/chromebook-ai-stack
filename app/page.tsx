@@ -214,7 +214,10 @@ export default function Home() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (loginUsername === 'mako' && loginPassword === '6996') {
+    const validUsername = process.env.NEXT_PUBLIC_LOGIN_USERNAME || 'mako';
+    const validPassword = process.env.NEXT_PUBLIC_LOGIN_PASSWORD || '6996';
+
+    if (loginUsername === validUsername && loginPassword === validPassword) {
       sessionStorage.setItem('maiko_authenticated', 'true');
       setIsAuthenticated(true);
       setLoginUsername('');
