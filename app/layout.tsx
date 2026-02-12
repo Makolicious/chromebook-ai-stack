@@ -31,7 +31,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${jetbrainsMono.variable} antialiased`}
+        className={`${jetbrainsMono.variable} antialiased`}
       >
         {children}
       </body>
