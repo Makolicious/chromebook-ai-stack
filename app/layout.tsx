@@ -19,7 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Maiko - Hybrid Intelligence System",
+  title: "MAiKO - Hybrid Intelligence System",
   description: "Dual-LLM chat interface combining GLM, Claude, and innovative Mako hybrid intelligence",
 };
 
