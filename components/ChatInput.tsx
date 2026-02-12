@@ -25,28 +25,28 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
   };
 
   return (
-    <div className="max-w-3xl mx-auto w-full">
-      <div className="bg-[#2a2a2a] rounded-2xl border border-[#3a3a3a] focus-within:border-[#4a4a4a] transition-colors">
+    <div className="w-full">
+      <div className="bg-black border-3 border-white font-mono">
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Message MAiKO..."
+          placeholder="> INPUT..."
           disabled={disabled}
           rows={1}
-          className="w-full bg-transparent text-white placeholder-gray-500 px-4 py-3 resize-none focus:outline-none text-sm"
+          className="w-full bg-black text-white placeholder-gray-500 px-4 py-3 resize-none focus:outline-none text-sm font-mono border-b-4 border-white"
           style={{ minHeight: '48px', maxHeight: '200px' }}
         />
-        <div className="flex items-center justify-between px-4 pb-3">
-          <div className="text-xs text-gray-500">
-            Press Enter to send, Shift+Enter for new line
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="text-xs text-gray-400 font-mono">
+            [ENTER] SEND | [SHIFT+ENTER] LINE
           </div>
           <button
             onClick={handleSend}
             disabled={!input.trim() || disabled}
-            className="bg-[#2563eb] hover:bg-[#1d4ed8] disabled:bg-[#1a1a1a] disabled:text-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            className="bg-white text-black hover:bg-gray-200 disabled:bg-black disabled:text-gray-500 disabled:border-gray-500 px-6 py-2 text-sm font-black transition-none border-2 border-white"
           >
-            Send
+            SEND
           </button>
         </div>
       </div>
