@@ -31,7 +31,7 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Message Maiko..."
+          placeholder="Message MAiKO..."
           disabled={disabled}
           rows={1}
           className="w-full bg-transparent text-white placeholder-gray-500 px-4 py-3 resize-none focus:outline-none text-sm"
