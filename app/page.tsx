@@ -42,6 +42,9 @@ This plan was generated using MAiKO in ${model === 'mako' ? 'fly mode (cost-opti
 }
 
 export default function Home() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentModel, setCurrentModel] = useState<'claude' | 'glm' | 'mako'>('glm');
@@ -50,6 +53,14 @@ export default function Home() {
   const [showHistory, setShowHistory] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Check auth on mount
+  useEffect(() => {
+    const storedAuth = sessionStorage.getItem('maiko_authenticated');
+    if (storedAuth === 'true') {
+      setIsAuthenticated(true);
+    }
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -201,6 +212,72 @@ export default function Home() {
     }
   };
 
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (loginUsername === 'mako' && loginPassword === '6996') {
+      sessionStorage.setItem('maiko_authenticated', 'true');
+      setIsAuthenticated(true);
+      setLoginUsername('');
+      setLoginPassword('');
+    } else {
+      alert('Invalid username or password');
+      setLoginPassword('');
+    }
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('maiko_authenticated');
+    setIsAuthenticated(false);
+    setMessages([]);
+    setCurrentChatId(null);
+    handleNewChat();
+  };
+
+  // Login screen
+  if (!isAuthenticated) {
+    return (
+      <div className="flex h-screen bg-black text-white font-mono items-center justify-center">
+        <div className="border-3 border-white p-8 max-w-md w-full">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-black mb-2">MA<span className="text-red-600">i</span>KO</h1>
+            <p className="text-xs mb-8">HYBRID INTELLIGENCE SYSTEM</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="text-xs font-bold uppercase block mb-2">USERNAME</label>
+              <input
+                type="text"
+                value={loginUsername}
+                onChange={(e) => setLoginUsername(e.target.value)}
+                className="w-full bg-black border-2 border-white text-white p-2 font-mono text-sm focus:outline-none"
+                placeholder="Enter username"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold uppercase block mb-2">PASSWORD</label>
+              <input
+                type="password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                className="w-full bg-black border-2 border-white text-white p-2 font-mono text-sm focus:outline-none"
+                placeholder="Enter password"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-white text-black border-2 border-white p-3 font-bold text-sm hover:bg-gray-200 transition-none"
+            >
+              [ LOGIN ]
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-black text-white font-mono">
       {/* Sidebar */}
@@ -328,8 +405,15 @@ export default function Home() {
         </div>
         )}
 
-        {/* Bottom area for future features */}
-        <div className="border-t-3 border-white"></div>
+        {/* Bottom area - Logout button */}
+        <div className="border-t-3 border-white p-4 mt-auto">
+          <button
+            onClick={handleLogout}
+            className="w-full text-red-500 hover:text-red-400 text-xs font-bold uppercase border-2 border-red-500 p-2 transition-none"
+          >
+            [ LOGOUT ]
+          </button>
+        </div>
       </div>
 
       {/* Main Chat Area */}
@@ -377,7 +461,7 @@ export default function Home() {
 
         {/* Input */}
         <div className="border-t-4 border-white p-6 bg-black">
-          <ChatInput onSend={handleSendMessage} disabled={isLoading} />
+          <ChatInput onSend={handleSendMessage} disabled={isLoading} autoFocus={true} />
         </div>
       </div>
     </div>
