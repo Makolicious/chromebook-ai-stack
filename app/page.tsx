@@ -206,18 +206,16 @@ export default function Home() {
       {/* Sidebar */}
       <div className={`bg-black border-3 border-white flex flex-col transition-all ${sidebarOpen ? 'w-80' : 'w-16'}`}>
         {/* Logo + Collapse */}
-        <div className="p-4 border-b-3 border-white flex items-center justify-between">
-          {sidebarOpen && (
-            <div className="border-3 border-white p-2">
-              <div className="text-sm font-black">MA<span className="text-red-600">i</span>KO</div>
-            </div>
-          )}
+        <div className="p-2 border-b-3 border-white flex items-center justify-between gap-1">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="text-xs font-bold border-2 border-white px-2 py-1 hover:bg-white hover:text-black transition-none"
+            className="text-xs font-bold border-2 border-white px-1 py-0.5 hover:bg-white hover:text-black transition-none flex-shrink-0"
           >
             {sidebarOpen ? '[<]' : '[>]'}
           </button>
+          <div className="border-3 border-white p-1.5 flex-grow flex justify-center">
+            <div className="text-sm font-black">MA<span className="text-red-600">i</span>KO</div>
+          </div>
         </div>
 
         {/* Buttons */}
