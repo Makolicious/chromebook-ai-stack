@@ -6,6 +6,41 @@ import ChatInput from '@/components/ChatInput';
 import ModelSelector from '@/components/ModelSelector';
 import { chatStorage, Chat, Message } from '@/lib/chatHistory';
 
+function generateExportPlan(messages: Message[], model: string): string {
+  const timestamp = new Date().toISOString();
+  const conversationText = messages
+    .map(msg => {
+      const role = msg.role === 'user' ? 'You' : 'MAiKO';
+      return `**${role}:** ${msg.content}`;
+    })
+    .join('\n\n');
+
+  return `# MAiKO Export Plan
+**Generated:** ${timestamp}
+**Model:** ${model === 'claude' ? 'Claude 3 Haiku' : model === 'glm' ? 'GLM-4.7 Flash' : 'Mako Hybrid (GLM + Claude)'}
+
+## Conversation Summary
+
+${conversationText}
+
+---
+
+## Implementation Notes
+
+This plan was generated using MAiKO in ${model === 'mako' ? 'hybrid mode (cost-optimized with GLM planning + Claude refinement)' : model === 'glm' ? 'GLM mode (fast, cost-effective)' : 'Claude mode (high-quality)'} and is ready to be used as context for Claude Desktop Code implementation.
+
+**How to use:**
+1. Copy this entire text
+2. Paste it into Claude Desktop Code
+3. I will execute the plan using the full context and architectural understanding
+
+**Benefits of this workflow:**
+- ✅ Cheap ideation phase (completed in MAiKO)
+- ✅ Full implementation context available
+- ✅ Less back-and-forth during building
+- ✅ Token-efficient planning + execution separation`;
+}
+
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -88,6 +123,22 @@ export default function Home() {
       return;
     }
 
+    if (content.trim().toLowerCase() === '/export') {
+      const exportedPlan = generateExportPlan(messages, currentModel);
+      navigator.clipboard.writeText(exportedPlan).then(() => {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: '📋 Plan exported to clipboard!\n\nYou can now paste this into Claude Desktop Code to build upon it.\n\n---\n\n' + exportedPlan
+        }]);
+      }).catch(() => {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: '❌ Failed to copy to clipboard. Here\'s your plan:\n\n---\n\n' + exportedPlan
+        }]);
+      });
+      return;
+    }
+
     // Add user message
     const userMessage: Message = { role: 'user', content };
     setMessages(prev => [...prev, userMessage]);
@@ -153,12 +204,19 @@ export default function Home() {
     <div className="flex h-screen bg-[#0f0f0f] text-white">
       {/* Sidebar */}
       <div className="w-64 bg-[#1a1a1a] border-r border-[#2a2a2a] flex flex-col">
-        <div className="p-4">
+        <div className="p-4 space-y-2">
           <button
             onClick={handleNewChat}
             className="w-full bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded-lg p-3 text-sm font-medium transition-colors"
           >
             + New Chat
+          </button>
+          <button
+            onClick={() => handleSendMessage('/export')}
+            disabled={messages.length === 0}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:opacity-50 rounded-lg p-3 text-sm font-medium transition-colors"
+          >
+            📋 Export Plan
           </button>
         </div>
 
