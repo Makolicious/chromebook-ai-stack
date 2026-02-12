@@ -235,7 +235,7 @@ export default function Home() {
         <div className="p-4 border-t border-[#2a2a2a]">
           <div className="text-xs text-gray-400">
             <div className="font-[family-name:var(--font-jetbrains-mono)] text-lg font-bold mb-1 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-cyan-400">
-              MAIKO
+              MAiKO
             </div>
             <div>Hybrid Intelligence System</div>
           </div>
@@ -259,7 +259,7 @@ export default function Home() {
             <div className="h-full flex items-center justify-center">
               <div className="text-center max-w-md">
                 <h2 className="font-[family-name:var(--font-jetbrains-mono)] text-5xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-cyan-400 to-blue-500">
-                  MAIKO
+                  MAiKO
                 </h2>
                 <p className="text-gray-500 text-sm mb-8 font-mono">// Hybrid Intelligence System</p>
                 <p className="text-gray-400 mb-6">
