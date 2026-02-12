@@ -206,15 +206,15 @@ export default function Home() {
       {/* Sidebar */}
       <div className={`bg-black border-3 border-white flex flex-col transition-all ${sidebarOpen ? 'w-80' : 'w-16'}`}>
         {/* Logo + Collapse */}
-        <div className="p-2 border-b-3 border-white flex items-center justify-between gap-1">
+        <div className="p-3 border-b-3 border-white flex items-center justify-between gap-2 h-20">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="text-xs font-bold border-2 border-white px-1 py-0.5 hover:bg-white hover:text-black transition-none flex-shrink-0"
+            className="text-xs font-bold border-2 border-white px-2 py-1 hover:bg-white hover:text-black transition-none flex-shrink-0"
           >
             {sidebarOpen ? '[<]' : '[>]'}
           </button>
-          <div className="border-3 border-white p-1.5 flex-grow flex justify-center">
-            <div className="text-sm font-black">MA<span className="text-red-600">i</span>KO</div>
+          <div className={`border-3 border-white p-2 flex-grow flex items-center justify-center transition-transform ${!sidebarOpen ? '-rotate-90' : ''}`}>
+            <div className={`font-black ${sidebarOpen ? 'text-base' : 'text-sm'}`}>MA<span className="text-red-600">i</span>KO</div>
           </div>
         </div>
 
@@ -335,7 +335,7 @@ export default function Home() {
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col border-l-4 border-white">
         {/* Header */}
-        <div className="h-16 border-b-4 border-white flex items-center px-6 bg-black">
+        <div className="h-20 border-b-4 border-white flex items-center px-6 bg-black ml-20">
           <h1 className="text-sm font-black uppercase">
             {currentModel === 'claude' ? 'CLAUDE 3 HAIKU' :
              currentModel === 'glm' ? 'GLM-4.7 FLASH' :
@@ -350,8 +350,10 @@ export default function Home() {
               <div className="text-center max-w-2xl border-3 border-white p-8">
                 <h2 className="text-6xl font-black mb-6">MA<span className="text-red-600">i</span>KO</h2>
                 <p className="text-sm mb-8">HYBRID INTELLIGENCE SYSTEM</p>
+                <p className="text-xs mb-4 font-bold uppercase">
+                  SELECT MODE:
+                </p>
                 <p className="text-xs mb-8 font-bold uppercase">
-                  SELECT MODE:<br/>
                   <code className="border-2 border-white px-2 py-1">/GLM</code> SPEED
                   <code className="border-2 border-white px-2 py-1 ml-2">/CLAUDE</code> QUALITY
                   <code className="border-2 border-white px-2 py-1 ml-2">/FLY</code> BALANCED
